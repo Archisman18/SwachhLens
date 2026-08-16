@@ -1,0 +1,41 @@
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
+
+class ComplaintCreate(BaseModel):
+    photo_url: str
+    latitude: float
+    longitude: float
+    comment: Optional[str] = None
+
+
+class ComplaintAssign(BaseModel):
+    assigned_team: str
+    assigned_vehicle: Optional[str] = None
+
+
+class ComplaintStatusUpdate(BaseModel):
+    status: str  # reported | assigned | cleaned | verified | duplicate
+
+
+class ComplaintOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    photo_url: str
+    latitude: float
+    longitude: float
+    comment: Optional[str]
+    waste_type: Optional[str]
+    volume_bucket: Optional[str]
+    status: str
+    urgency: Optional[str]
+    priority_score: float
+    assigned_team: Optional[str]
+    assigned_vehicle: Optional[str]
+    duplicate_of: Optional[uuid.UUID]
+    reported_at: datetime
+    updated_at: datetime
