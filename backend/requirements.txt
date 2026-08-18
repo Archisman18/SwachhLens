@@ -10,4 +10,4 @@ python-dotenv==1.0.1
 # ML pipeline (add once you start wiring services/classifier.py etc.)
 # ultralytics==8.2.0
 # torch
-# torchvision
+# transformers

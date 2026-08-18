@@ -1,3 +1,4 @@
+import httpx
 import uuid
 from datetime import datetime, timezone
 
@@ -37,12 +38,19 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
         updated_at=now,
     )
 
-    # TODO once classifier/volume_estimator are implemented, fetch the
-    # image bytes from photo_url (e.g. Supabase storage) and call:
-    #   waste_type, _ = await classifier.classify_waste(image_bytes)
-    #   volume_bucket = await volume_estimator.estimate_volume(image_bytes)
-    #   complaint.waste_type = waste_type
-    #   complaint.volume_bucket = volume_bucket
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            image_response = await client.get(payload.photo_url)
+            image_response.raise_for_status()
+            image_bytes = image_response.content
+
+        waste_type, confidence = await classifier.classify_waste(image_bytes)
+        volume_bucket = await volume_estimator.estimate_volume(image_bytes)
+
+        complaint.waste_type = waste_type
+        complaint.volume_bucket = volume_bucket
+    except Exception as e:
+        print(f"AI pipeline failed for {payload.photo_url}: {e}")
 
     duplicate_id = await duplicate_detector.find_duplicate_candidate(
         db, payload.latitude, payload.longitude, complaint.waste_type

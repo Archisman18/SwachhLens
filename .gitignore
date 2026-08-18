@@ -1,13 +1,33 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
 .env
 
 # Node
 node_modules/
 dist/
-.env.local
+
+# Datasets / ML files
+garbage-dataset/
+garbage-classification.zip
+scraped/
+datasets/
+*.csv
+*.zip
+
+# ML models
+*.pkl
+*.pt
+*.pth
+*.h5
+*.keras
+
+# IDE
+.vscode/
+.idea/
 
 # OS
 .DS_Store
+Thumbs.db

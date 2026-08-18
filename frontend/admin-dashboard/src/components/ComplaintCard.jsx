@@ -1,6 +1,14 @@
-export default function ComplaintCard({ complaint, onAssign }) {
+export default function ComplaintCard({ complaint, onClick }) {
   return (
-    <div className="border rounded-lg p-3 mb-2 bg-white shadow-sm">
+    <div className="border rounded-lg p-3 mb-2 bg-white shadow-sm cursor-pointer hover:shadow-md" onClick={onClick}>
+      {complaint.photo_url && (
+        <img
+          src={complaint.photo_url}
+          alt="Reported waste"
+          className="w-full h-32 object-cover rounded mb-2"
+          onError={(e) => { e.target.style.display = 'none' }}
+        />
+      )}
       <div className="flex justify-between items-start">
         <div>
           <p className="font-semibold capitalize">{complaint.waste_type || 'Unclassified'}</p>
@@ -13,14 +21,6 @@ export default function ComplaintCard({ complaint, onAssign }) {
           {complaint.urgency || 'n/a'}
         </span>
       </div>
-      {complaint.status === 'reported' && (
-        <button
-          className="mt-2 text-sm bg-brand text-white px-3 py-1 rounded"
-          onClick={() => onAssign(complaint.id)}
-        >
-          Assign recommended response
-        </button>
-      )}
     </div>
   )
 }

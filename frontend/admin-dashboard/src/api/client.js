@@ -21,3 +21,19 @@ export async function assignComplaint(id, team, vehicle) {
   if (!res.ok) throw new Error(`Assign failed: ${res.status}`)
   return res.json()
 }
+
+export async function getComplaint(id) {
+  const res = await fetch(`${API_BASE}/complaints/${id}`)
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
+  return res.json()
+}
+
+export async function updateStatus(id, status) {
+  const res = await fetch(`${API_BASE}/complaints/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  if (!res.ok) throw new Error(`Status update failed: ${res.status}`)
+  return res.json()
+}

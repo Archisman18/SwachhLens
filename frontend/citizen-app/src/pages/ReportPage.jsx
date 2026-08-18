@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import CameraCapture from './CameraCapture.jsx'
-import { submitComplaint } from '../api/client.js'
+import { useNavigate } from 'react-router-dom'
+import CameraCapture from '../components/CameraCapture.jsx'
+import { submitComplaint, uploadPhoto } from '../api/client.js'
+import { saveReportId } from '../api/localReports.js'
 
-export default function ReportForm() {
+export default function ReportPage() {
+  const navigate = useNavigate()
   const [capture, setCapture] = useState(null)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
   async function handleSubmit() {
@@ -14,32 +16,20 @@ export default function ReportForm() {
     setSubmitting(true)
     setError(null)
     try {
-      // TODO: upload capture.file to Supabase storage first and use the
-      // returned public URL here. Using a placeholder until that's wired up.
-      const photoUrl = 'https://placeholder.example.com/upload-not-wired-yet.jpg'
-
+      const photoUrl = await uploadPhoto(capture.file)
       const complaint = await submitComplaint({
         photoUrl,
         latitude: capture.latitude,
         longitude: capture.longitude,
         comment,
       })
-      setResult(complaint)
+      saveReportId(complaint.id)
+      navigate(`/confirmation/${complaint.id}`)
     } catch (e) {
       setError(e.message)
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (result) {
-    return (
-      <div>
-        <h2>Report submitted</h2>
-        <p>Tracking ID: {result.id}</p>
-        <p>Status: {result.status}</p>
-      </div>
-    )
   }
 
   return (
@@ -61,6 +51,12 @@ export default function ReportForm() {
         {submitting ? 'Submitting...' : 'Submit Report'}
       </button>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button
+        style={{ marginTop: 20, background: 'none', border: 'none', color: '#2e7d32', textDecoration: 'underline' }}
+        onClick={() => navigate('/my-reports')}
+      >
+        View my past reports
+      </button>
     </div>
   )
 }
