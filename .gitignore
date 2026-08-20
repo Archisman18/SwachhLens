@@ -8,13 +8,22 @@ __pycache__/
 venv/
 env/
 .env
+.env.*
+!.env.example
 *.log
 
-# ────────── Node ──────────
+# ────────── SQLite / Local Databases ──────────
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ────────── Node & Vite ──────────
 node_modules/
 dist/
 .cache/
 .parcel-cache/
+.vite/
 
 # ────────── Datasets / ML files ──────────
 garbage-dataset/
@@ -33,7 +42,7 @@ datasets/
 *.onnx
 *.safetensors
 
-# ────────── IDE ──────────
+# ────────── IDE & Editors ──────────
 .vscode/
 .idea/
 *.swp
