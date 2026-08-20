@@ -1,5 +1,9 @@
+import ssl
+from uuid import uuid4
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
@@ -8,7 +12,21 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_async_engine(settings.database_url, echo=(settings.env == "development"))
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+
+engine = create_async_engine(
+    settings.database_url,
+    echo=(settings.env == "development"),
+    poolclass=NullPool,
+    connect_args={
+        "ssl": ssl_context,
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+    },
+)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 

@@ -59,7 +59,12 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
         complaint.status = "duplicate"
         complaint.duplicate_of = uuid.UUID(duplicate_id)
     else:
-        score = priority_scorer.compute_priority_score(complaint.volume_bucket)
+        report_frequency = await duplicate_detector.count_nearby_reports(
+            db, payload.latitude, payload.longitude
+        )
+        score = priority_scorer.compute_priority_score(
+            complaint.volume_bucket, report_frequency=report_frequency
+        )
         urgency = priority_scorer.urgency_from_score(score)
         recommendation = dispatch_recommender.recommend_response(
             complaint.waste_type, complaint.volume_bucket, urgency

@@ -1,20 +1,14 @@
 """
-Volume estimation.
-
-Plan (see PRD section 8): YOLOv8 waste-region bounding box, bucketed by
-the box's area relative to the frame. Treat this as an estimate/bucket,
-not a precise measurement (see PRD risks section).
+Volume estimation via classical image processing - detects the
+non-background/"busy" region of the photo and buckets its area
+relative to the full frame. No training data required.
 """
 
-VOLUME_BUCKETS = ["small", "medium", "large", "very_large"]
+import cv2
+import numpy as np
 
-# bbox_area / frame_area thresholds - tune against real sample photos
-_THRESHOLDS = {
-    "small": 0.05,
-    "medium": 0.15,
-    "large": 0.35,
-    # anything above the "large" threshold is bucketed "very_large"
-}
+VOLUME_BUCKETS = ["small", "medium", "large", "very_large"]
+_THRESHOLDS = {"small": 0.05, "medium": 0.15, "large": 0.35}
 
 
 def bucket_from_area_ratio(area_ratio: float) -> str:
@@ -28,10 +22,19 @@ def bucket_from_area_ratio(area_ratio: float) -> str:
 
 
 async def estimate_volume(image_bytes: bytes) -> str:
-    """
-    Detect the waste region and return a volume bucket.
+    arr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        return "medium"
 
-    TODO: run YOLOv8 detection, compute bbox area / frame area,
-    pass through bucket_from_area_ratio().
-    """
-    raise NotImplementedError("Plug in the YOLOv8 detector here")
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 50, 150)
+    dilated = cv2.dilate(edges, np.ones((9, 9), np.uint8), iterations=2)
+
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return "small"
+
+    frame_area = img.shape[0] * img.shape[1]
+    total_area = sum(cv2.contourArea(c) for c in contours)
+    return bucket_from_area_ratio(total_area / frame_area)
