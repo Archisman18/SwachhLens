@@ -50,12 +50,15 @@ export default function HomePage() {
 
       {/* ── 2. Editorial About Section (Split layout like reference image 2) ── */}
       <section id="about" className="about-section">
-        <div>
+        <div style={{ overflow: 'hidden', height: '100%', minHeight: '520px' }}>
           <img
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1000&q=80"
-            alt="Citizen taking action for civic cleanliness"
+            src="https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=1000&q=80"
+            alt="Municipal waste management and urban sanitation in action"
             className="about-image"
-            onError={(e) => { e.target.src = '/images/about.jpg' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1000&q=80'
+            }}
           />
         </div>
         <div className="about-content">
