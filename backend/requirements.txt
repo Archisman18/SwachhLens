@@ -1,13 +1,24 @@
+# Web framework
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
+
+# Database
 sqlalchemy[asyncio]==2.0.35
-asyncpg==0.29.0
+aiosqlite>=0.20.0
+
+# Validation & config
 pydantic==2.9.2
 pydantic-settings==2.5.2
 python-multipart==0.0.9
 python-dotenv==1.0.1
 
-# ML pipeline (add once you start wiring services/classifier.py etc.)
-# ultralytics==8.2.0
-# torch
-# transformers
+# HTTP client
+httpx>=0.27.0
+
+# ML pipeline (optional — server starts without these)
+# Pillow>=10.0.0
+# torch>=2.2.0
+# transformers>=4.38.0
+
+# PostgreSQL (enable when deploying with Supabase/Postgres)
+# asyncpg>=0.30.0

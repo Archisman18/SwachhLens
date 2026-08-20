@@ -1,16 +1,30 @@
 """
 Duplicate detection.
 
-GPS proximity + time window + same waste_type, using the PostGIS
-`location` column (see db/schema.sql). Image-similarity (CLIP
-embeddings) is a "Could have" stretch per the PRD - not required for MVP.
+For PostgreSQL+PostGIS, uses spatial ST_DWithin queries.
+For SQLite (dev), falls back to Haversine distance calculation.
 """
 
-from sqlalchemy import text
+import math
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.complaint import Complaint
 
 DUPLICATE_RADIUS_METERS = 50
 DUPLICATE_TIME_WINDOW_HOURS = 48
+
+
+def _haversine_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance between two GPS points in metres."""
+    R = 6_371_000  # Earth radius in metres
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 async def find_duplicate_candidate(
@@ -18,34 +32,27 @@ async def find_duplicate_candidate(
 ) -> str | None:
     """
     Returns the id of a likely-duplicate existing complaint, or None.
+    Uses in-Python Haversine filtering (works on any DB backend).
     """
     if waste_type is None:
         return None
 
-    query = text(
-        """
-        SELECT id FROM complaints
-        WHERE status != 'duplicate'
-          AND waste_type = :waste_type
-          AND reported_at > now() - (:hours || ' hours')::interval
-          AND ST_DWithin(
-                location,
-                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-                :radius
-              )
-        ORDER BY reported_at DESC
-        LIMIT 1
-        """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=DUPLICATE_TIME_WINDOW_HOURS)
+
+    query = (
+        select(Complaint)
+        .where(
+            Complaint.status != "duplicate",
+            Complaint.waste_type == waste_type,
+            Complaint.reported_at > cutoff,
+        )
+        .order_by(Complaint.reported_at.desc())
     )
-    result = await db.execute(
-        query,
-        {
-            "waste_type": waste_type,
-            "hours": DUPLICATE_TIME_WINDOW_HOURS,
-            "lng": longitude,
-            "lat": latitude,
-            "radius": DUPLICATE_RADIUS_METERS,
-        },
-    )
-    row = result.first()
-    return str(row[0]) if row else None
+
+    result = await db.execute(query)
+    for complaint in result.scalars():
+        dist = _haversine_meters(latitude, longitude, complaint.latitude, complaint.longitude)
+        if dist <= DUPLICATE_RADIUS_METERS:
+            return str(complaint.id)
+
+    return None

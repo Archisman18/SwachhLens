@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Global Styles ── */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FAF7F2;
+  color: #2C2C2C;
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F0EBE3;
+}
+::-webkit-scrollbar-thumb {
+  background: #B5AFA5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8A8578;
+}
+
+/* ── Leaflet Custom Popups ── */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #E5E0D8 !important;
+  background: #FAF7F2 !important;
+}
+.leaflet-popup-content {
+  margin: 14px !important;
+  font-family: 'Inter', sans-serif !important;
+  color: #2C2C2C !important;
+}
+.leaflet-popup-tip {
+  background: #FAF7F2 !important;
+}
