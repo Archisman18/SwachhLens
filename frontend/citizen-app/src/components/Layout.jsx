@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [queuedCount, setQueuedCount] = useState(0)
+  const [activeSection, setActiveSection] = useState('home')
 
   useEffect(() => {
     function updateQueueState() {
@@ -25,7 +27,6 @@ export default function Layout() {
     window.addEventListener('online', handleOnline)
     const interval = setInterval(updateQueueState, 5000)
 
-    // Attempt flush on mount if online
     if (navigator.onLine) {
       flushOfflineQueue().then(updateQueueState)
     }
@@ -35,6 +36,76 @@ export default function Layout() {
       clearInterval(interval)
     }
   }, [])
+
+  // Scroll spy to detect active section on Home Page
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      if (location.pathname === '/my-reports') {
+        setActiveSection('my-reports')
+      } else {
+        setActiveSection('')
+      }
+      return
+    }
+
+    function onScroll() {
+      const scrollPos = window.scrollY + 200
+      const aboutEl = document.getElementById('about')
+      const howItWorksEl = document.getElementById('how-it-works')
+
+      if (howItWorksEl && scrollPos >= howItWorksEl.offsetTop) {
+        setActiveSection('how-it-works')
+      } else if (aboutEl && scrollPos >= aboutEl.offsetTop) {
+        setActiveSection('about')
+      } else {
+        setActiveSection('home')
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [location.pathname])
+
+  // Handle hash navigation on initial load or change
+  useEffect(() => {
+    if (location.pathname === '/' && location.hash) {
+      const targetId = location.hash.replace('#', '')
+      setTimeout(() => {
+        const targetEl = document.getElementById(targetId)
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+  }, [location.pathname, location.hash])
+
+  function handleHomeClick(e) {
+    e.preventDefault()
+    setActiveSection('home')
+    if (location.pathname !== '/') {
+      navigate('/')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      window.history.pushState(null, '', '/')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  function handleSectionClick(e, sectionId) {
+    e.preventDefault()
+    setActiveSection(sectionId)
+    if (location.pathname !== '/') {
+      navigate(`/#${sectionId}`)
+    } else {
+      window.history.pushState(null, '', `/#${sectionId}`)
+      const targetEl = document.getElementById(sectionId)
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,7 +120,7 @@ export default function Layout() {
       {/* Main Header / Navigation */}
       <header className="navbar">
         <div className="navbar-logo">
-          <Link to="/" style={{ color: 'var(--charcoal)', textDecoration: 'none' }}>
+          <Link to="/" onClick={handleHomeClick} style={{ color: 'var(--charcoal)', textDecoration: 'none' }}>
             Swachh<span style={{ fontStyle: 'italic', fontWeight: '400', color: 'var(--forest)' }}>Lens</span>
           </Link>
         </div>
@@ -57,16 +128,62 @@ export default function Layout() {
         <nav>
           <ul className="navbar-links">
             <li>
-              <Link to="/" style={{ fontWeight: location.pathname === '/' ? '600' : '400' }}>Home</Link>
+              <a
+                href="/"
+                onClick={handleHomeClick}
+                style={{
+                  fontWeight: activeSection === 'home' ? '700' : '400',
+                  color: activeSection === 'home' ? 'var(--forest)' : 'var(--charcoal)',
+                  cursor: 'pointer',
+                  borderBottom: activeSection === 'home' ? '2px solid var(--forest)' : 'none',
+                  paddingBottom: '4px'
+                }}
+              >
+                Home
+              </a>
             </li>
             <li>
-              <Link to="/#about">About</Link>
+              <a
+                href="#about"
+                onClick={(e) => handleSectionClick(e, 'about')}
+                style={{
+                  fontWeight: activeSection === 'about' ? '700' : '400',
+                  color: activeSection === 'about' ? 'var(--forest)' : 'var(--charcoal)',
+                  cursor: 'pointer',
+                  borderBottom: activeSection === 'about' ? '2px solid var(--forest)' : 'none',
+                  paddingBottom: '4px'
+                }}
+              >
+                About
+              </a>
             </li>
             <li>
-              <Link to="/#how-it-works">How It Works</Link>
+              <a
+                href="#how-it-works"
+                onClick={(e) => handleSectionClick(e, 'how-it-works')}
+                style={{
+                  fontWeight: activeSection === 'how-it-works' ? '700' : '400',
+                  color: activeSection === 'how-it-works' ? 'var(--forest)' : 'var(--charcoal)',
+                  cursor: 'pointer',
+                  borderBottom: activeSection === 'how-it-works' ? '2px solid var(--forest)' : 'none',
+                  paddingBottom: '4px'
+                }}
+              >
+                How It Works
+              </a>
             </li>
             <li>
-              <Link to="/my-reports" style={{ fontWeight: location.pathname === '/my-reports' ? '600' : '400' }}>My Reports</Link>
+              <Link
+                to="/my-reports"
+                style={{
+                  fontWeight: activeSection === 'my-reports' ? '700' : '400',
+                  color: activeSection === 'my-reports' ? 'var(--forest)' : 'var(--charcoal)',
+                  borderBottom: activeSection === 'my-reports' ? '2px solid var(--forest)' : 'none',
+                  paddingBottom: '4px'
+                }}
+              >
+                My Reports
+              </Link>
             </li>
           </ul>
         </nav>
@@ -116,7 +233,7 @@ export default function Layout() {
           <div className="footer-links">
             <div className="footer-links-column">
               <h4>Navigation</h4>
-              <Link to="/">Home</Link>
+              <a href="/" onClick={handleHomeClick}>Home</a>
               <Link to="/report">Report Waste</Link>
               <Link to="/my-reports">My Reports Track</Link>
               <a href="http://localhost:5174" target="_blank" rel="noreferrer">Control Room</a>
@@ -124,16 +241,16 @@ export default function Layout() {
 
             <div className="footer-links-column">
               <h4>Classification</h4>
-              <Link to="/#categories">Plastic & Debris</Link>
-              <Link to="/#categories">Overflowing Bins</Link>
-              <Link to="/#categories">Hazardous & E-Waste</Link>
-              <Link to="/#categories">Bio Degradable</Link>
+              <a href="#categories" onClick={(e) => handleSectionClick(e, 'categories')}>Plastic &amp; Debris</a>
+              <a href="#categories" onClick={(e) => handleSectionClick(e, 'categories')}>Overflowing Bins</a>
+              <a href="#categories" onClick={(e) => handleSectionClick(e, 'categories')}>Hazardous &amp; E-Waste</a>
+              <a href="#categories" onClick={(e) => handleSectionClick(e, 'categories')}>Bio Degradable</a>
             </div>
 
             <div className="footer-links-column">
               <h4>Initiative</h4>
-              <Link to="/#about">Clean Neighborhoods</Link>
-              <Link to="/#how-it-works">Municipal Integration</Link>
+              <a href="#about" onClick={(e) => handleSectionClick(e, 'about')}>Clean Neighborhoods</a>
+              <a href="#how-it-works" onClick={(e) => handleSectionClick(e, 'how-it-works')}>Municipal Integration</a>
               <Link to="/report">Zero Dump Mission</Link>
             </div>
           </div>

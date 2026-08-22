@@ -265,7 +265,13 @@ button { cursor: pointer; font-family: inherit; }
 .about-content .heading-lg { margin-bottom: 24px; }
 .about-content .text-body { margin-bottom: 32px; }
 
-/* ── Section Containers ── */
+/* ── Section Containers & Scroll Margins ── */
+section,
+.section,
+.about-section {
+  scroll-margin-top: 76px;
+}
+
 .section {
   padding: 100px 24px;
 }

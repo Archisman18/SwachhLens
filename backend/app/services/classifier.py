@@ -2,14 +2,14 @@
 Waste type classification and AI Triage.
 
 Supports:
-1. Groq Cloud AI inference (Ultra-fast LLM triage for urban civic waste)
+1. Groq Cloud AI inference (Ultra-fast LLM triage for urban civic waste with non-waste rejection)
 2. Local CLIP zero-shot classification (if torch/transformers installed)
 3. Safe fallback heuristics for zero-setup offline environments
 """
 
 import json
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Dict, Any
 import httpx
 
 from app.core.config import settings
@@ -48,9 +48,10 @@ def _load_clip_model():
     _model.eval()
 
 
-async def analyze_with_groq(comment: Optional[str] = None) -> Optional[dict]:
+async def analyze_with_groq(comment: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
-    Use Groq AI to analyze citizen waste reports and generate structured triage data.
+    Use Groq AI to analyze citizen waste reports, detect non-waste/irrelevant submissions,
+    and generate structured triage data.
     """
     if not settings.groq_api_key:
         return None
@@ -60,19 +61,25 @@ async def analyze_with_groq(comment: Optional[str] = None) -> Optional[dict]:
         "Content-Type": "application/json",
     }
 
-    user_text = comment.strip() if comment and comment.strip() else "civic litter and street waste report"
+    user_text = comment.strip() if comment and comment.strip() else ""
 
     prompt = f"""
-You are an expert municipal AI triage engine for urban waste management (Swachh Bharat / SwachhLens).
-Citizen report notes: "{user_text}"
+You are an expert municipal AI verification and triage engine for SwachhLens (urban sanitation & Swachh Bharat).
+Citizen report text: "{user_text}"
 
-Analyze this incident and output a strict JSON object with:
-- "waste_type": exactly one of {json.dumps(WASTE_TYPES)}
-- "confidence": a float between 0.70 and 0.98
-- "volume_bucket": exactly one of ["small", "medium", "large", "very_large"]
-- "summary": a single concise sentence describing the waste situation
+TASK:
+1. First, determine if this report actually describes municipal street waste, trash, litter, illegal dumping, overflowing bins, drainage clogging, or urban sanitation hazards.
+2. If it is NOT municipal waste/litter (e.g. personal selfies, animals/pets, clean rooms/indoors, clean roads/landscapes, non-waste objects, jokes/spam, or empty/irrelevant messages):
+   Set "is_waste": false, "waste_type": "other", "confidence": 0.1, "volume_bucket": "small", "urgency": "low", "priority_score": 0.0, "summary": "No municipal waste or sanitation issue detected in this report."
+3. If it IS municipal waste:
+   Set "is_waste": true, and classify:
+   - "waste_type": one of {json.dumps(WASTE_TYPES)}
+   - "confidence": float between 0.70 and 0.98
+   - "volume_bucket": one of ["small", "medium", "large", "very_large"]
+   - "urgency": one of ["low", "medium", "high", "critical"]
+   - "summary": 1-sentence summary of the waste hazard
 
-Return ONLY valid JSON.
+Respond strictly with valid JSON.
 """
 
     payload = {
@@ -93,50 +100,70 @@ Return ONLY valid JSON.
                 data = res.json()
                 content = data["choices"][0]["message"]["content"]
                 result = json.loads(content)
-                if result.get("waste_type") in WASTE_TYPES:
-                    return result
+                return result
     except Exception as exc:
         logger.warning(f"Groq AI triage call failed: {exc}")
 
     return None
 
 
-async def classify_waste(image_bytes: bytes, comment: Optional[str] = None) -> Tuple[str, float]:
+async def classify_waste(image_bytes: bytes, comment: Optional[str] = None) -> Dict[str, Any]:
     """
-    Classify waste type using Groq AI or local CLIP model.
+    Classify waste and verify authenticity using Groq AI or local CLIP model.
+    Returns a dict with: is_waste, waste_type, confidence, volume_bucket, urgency.
     """
     # 1. Try Groq AI triage first
-    if settings.groq_api_key and comment:
+    if settings.groq_api_key:
         groq_res = await analyze_with_groq(comment)
-        if groq_res and "waste_type" in groq_res:
-            return groq_res["waste_type"], float(groq_res.get("confidence", 0.90))
+        if groq_res:
+            is_waste = bool(groq_res.get("is_waste", True))
+            waste_type = groq_res.get("waste_type") if groq_res.get("waste_type") in WASTE_TYPES else "other"
+            return {
+                "is_waste": is_waste,
+                "waste_type": waste_type if is_waste else "other",
+                "confidence": float(groq_res.get("confidence", 0.85 if is_waste else 0.1)),
+                "volume_bucket": groq_res.get("volume_bucket", "medium" if is_waste else "small"),
+                "urgency": groq_res.get("urgency", "medium" if is_waste else "low"),
+                "summary": groq_res.get("summary", ""),
+            }
 
     # 2. Try local CLIP zero-shot if torch is installed
     try:
-        import io
-        import torch
-        from PIL import Image
+        if image_bytes and len(image_bytes) > 0:
+            import io
+            import torch
+            from PIL import Image
 
-        _load_clip_model()
+            _load_clip_model()
 
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        prompts = list(CATEGORY_PROMPTS.values())
+            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            prompts = list(CATEGORY_PROMPTS.values())
 
-        inputs = _processor(text=prompts, images=image, return_tensors="pt", padding=True)
-        with torch.no_grad():
-            outputs = _model(**inputs)
-            probs = outputs.logits_per_image.softmax(dim=1)[0]
+            inputs = _processor(text=prompts, images=image, return_tensors="pt", padding=True)
+            with torch.no_grad():
+                outputs = _model(**inputs)
+                probs = outputs.logits_per_image.softmax(dim=1)[0]
 
-        best_idx = int(probs.argmax())
-        return WASTE_TYPES[best_idx], float(probs[best_idx])
+            best_idx = int(probs.argmax())
+            best_type = WASTE_TYPES[best_idx]
+            conf = float(probs[best_idx])
+            is_waste = conf >= 0.20  # Minimum confidence threshold
+            return {
+                "is_waste": is_waste,
+                "waste_type": best_type if is_waste else "other",
+                "confidence": conf,
+                "volume_bucket": "medium",
+                "urgency": "medium" if is_waste else "low",
+                "summary": "",
+            }
     except Exception:
-        # Fallback if torch or transformers is not installed
         pass
 
-    # 3. Fallback if comment provided even without image ML
-    if settings.groq_api_key:
-        groq_res = await analyze_with_groq(comment)
-        if groq_res and "waste_type" in groq_res:
-            return groq_res["waste_type"], float(groq_res.get("confidence", 0.85))
-
-    return "plastic_waste", 0.75
+    return {
+        "is_waste": True,
+        "waste_type": "plastic_waste",
+        "confidence": 0.75,
+        "volume_bucket": "medium",
+        "urgency": "medium",
+        "summary": "",
+    }

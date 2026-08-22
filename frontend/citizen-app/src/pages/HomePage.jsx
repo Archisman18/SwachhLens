@@ -17,7 +17,15 @@ export default function HomePage() {
           <Link to="/report" className="btn btn-primary" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
             Report An Issue
           </Link>
-          <a href="#how-it-works" className="btn btn-outline" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
+          <a
+            href="#how-it-works"
+            className="btn btn-outline"
+            style={{ padding: '16px 36px', fontSize: '0.85rem' }}
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
             Explore Process
           </a>
         </div>
@@ -215,35 +223,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── 5. Impact Metrics Section ── */}
-      <section className="section" style={{ background: 'var(--charcoal)', color: 'var(--white)' }}>
-        <div className="section-center">
-          <span className="heading-sm" style={{ color: '#A3D9B1' }}>REAL-TIME CIVIC IMPACT</span>
-          <h2 className="heading-lg" style={{ color: 'var(--white)', marginTop: '12px' }}>
-            Cleaner neighborhoods, <span className="italic">measured in real time</span>
+      {/* ── 5. Call To Action Section ── */}
+      <section className="section" style={{ background: 'var(--charcoal)', color: 'var(--white)', textAlign: 'center', padding: '70px 24px' }}>
+        <div className="section-center" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <span className="heading-sm" style={{ color: '#A3D9B1' }}>CIVIC ACTION</span>
+          <h2 className="heading-lg" style={{ color: 'var(--white)', marginTop: '12px', marginBottom: '16px' }}>
+            Keep your neighborhood <span className="italic">clean and safe</span>
           </h2>
-        </div>
-
-        <div className="stats-grid">
-          <div className="stat-item">
-            <div className="stat-number">98%</div>
-            <div className="stat-label">AI Accuracy</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">&lt; 3 hrs</div>
-            <div className="stat-label">Avg Response Time</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">1,420+</div>
-            <div className="stat-label">Cleaned Hotspots</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">100%</div>
-            <div className="stat-label">Traceable Chain</div>
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', marginTop: '60px' }}>
+          <p className="text-body" style={{ color: 'rgba(255, 255, 255, 0.75)', marginBottom: '32px' }}>
+            Spot an overflowing bin or roadside debris? Submit a quick geotagged photo to dispatch municipal teams.
+          </p>
           <Link to="/report" className="btn btn-primary" style={{ background: 'var(--cream)', color: 'var(--charcoal)', padding: '16px 40px' }}>
             Report Waste Now
           </Link>

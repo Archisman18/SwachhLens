@@ -39,52 +39,61 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
         updated_at=now,
     )
 
+    is_waste = True
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             image_response = await client.get(payload.photo_url)
             image_response.raise_for_status()
             image_bytes = image_response.content
 
-        waste_type, confidence = await classifier.classify_waste(image_bytes, payload.comment)
+        ai_result = await classifier.classify_waste(image_bytes, payload.comment)
+        is_waste = ai_result.get("is_waste", True)
         volume_bucket = await volume_estimator.estimate_volume(image_bytes)
 
-        complaint.waste_type = waste_type
-        complaint.volume_bucket = volume_bucket
+        complaint.waste_type = ai_result.get("waste_type", "other")
+        complaint.volume_bucket = ai_result.get("volume_bucket", volume_bucket)
     except Exception as e:
-        # If image download fails or times out, still try Groq AI triage with comment
         try:
-            waste_type, confidence = await classifier.classify_waste(b"", payload.comment)
-            complaint.waste_type = waste_type
-            complaint.volume_bucket = "medium"
+            ai_result = await classifier.classify_waste(b"", payload.comment)
+            is_waste = ai_result.get("is_waste", True)
+            complaint.waste_type = ai_result.get("waste_type", "other")
+            complaint.volume_bucket = ai_result.get("volume_bucket", "medium")
         except Exception:
             print(f"AI pipeline failed for {payload.photo_url}: {e}")
 
-    duplicate_id = await duplicate_detector.find_duplicate_candidate(
-        db, payload.latitude, payload.longitude, complaint.waste_type
-    )
-    if duplicate_id:
-        complaint.status = "duplicate"
-        complaint.duplicate_of = duplicate_id
+    if not is_waste:
+        # Non-waste photo: do not hallucinate urgency or dispatch crews
+        complaint.priority_score = 0.0
+        complaint.urgency = "low"
+        complaint.assigned_team = "Review - No Waste Detected"
+        complaint.assigned_vehicle = "None"
     else:
-        report_frequency = await duplicate_detector.count_nearby_reports(
-            db, payload.latitude, payload.longitude
+        duplicate_id = await duplicate_detector.find_duplicate_candidate(
+            db, payload.latitude, payload.longitude, complaint.waste_type
         )
-        location_sensitivity = await geocoder.get_location_sensitivity(
-            payload.latitude, payload.longitude
-        )
-        score = priority_scorer.compute_priority_score(
-            complaint.volume_bucket,
-            location_sensitivity=location_sensitivity,
-            report_frequency=max(report_frequency, 1),
-        )
-        urgency = priority_scorer.urgency_from_score(score)
-        recommendation = dispatch_recommender.recommend_response(
-            complaint.waste_type, complaint.volume_bucket, urgency
-        )
-        complaint.priority_score = score
-        complaint.urgency = urgency
-        complaint.assigned_team = recommendation["team"]
-        complaint.assigned_vehicle = recommendation["vehicle"]
+        if duplicate_id:
+            complaint.status = "duplicate"
+            complaint.duplicate_of = duplicate_id
+        else:
+            report_frequency = await duplicate_detector.count_nearby_reports(
+                db, payload.latitude, payload.longitude
+            )
+            location_sensitivity = await geocoder.get_location_sensitivity(
+                payload.latitude, payload.longitude
+            )
+            score = priority_scorer.compute_priority_score(
+                complaint.volume_bucket,
+                location_sensitivity=location_sensitivity,
+                report_frequency=max(report_frequency, 1),
+            )
+            urgency = priority_scorer.urgency_from_score(score)
+            recommendation = dispatch_recommender.recommend_response(
+                complaint.waste_type, complaint.volume_bucket, urgency
+            )
+            complaint.priority_score = score
+            complaint.urgency = urgency
+            complaint.assigned_team = recommendation["team"]
+            complaint.assigned_vehicle = recommendation["vehicle"]
 
     db.add(complaint)
     await db.commit()
