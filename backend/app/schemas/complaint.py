@@ -10,6 +10,9 @@ class ComplaintCreate(BaseModel):
     latitude: float
     longitude: float
     comment: Optional[str] = None
+    citizen_name: Optional[str] = None
+    citizen_phone: Optional[str] = None
+    citizen_email: Optional[str] = None
 
 
 class ComplaintAssign(BaseModel):
@@ -39,5 +42,8 @@ class ComplaintOut(BaseModel):
     assigned_vehicle: Optional[str]
     duplicate_of: Optional[uuid.UUID]
     resolution_photo_url: Optional[str]
+    citizen_name: Optional[str] = None
+    citizen_phone: Optional[str] = None
+    citizen_email: Optional[str] = None
     reported_at: datetime
     updated_at: datetime

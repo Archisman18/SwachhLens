@@ -37,9 +37,17 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def create_tables():
-    """Create all tables on startup (dev convenience for SQLite)."""
+    """Create all tables on startup (dev convenience for SQLite & auto column addition for Postgres)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if not _is_sqlite:
+            from sqlalchemy import text
+            try:
+                await conn.execute(text("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS citizen_name VARCHAR(100);"))
+                await conn.execute(text("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS citizen_phone VARCHAR(30);"))
+                await conn.execute(text("ALTER TABLE complaints ADD COLUMN IF NOT EXISTS citizen_email VARCHAR(100);"))
+            except Exception as e:
+                print("Column check/migration notice:", e)
 
 
 async def get_db() -> AsyncSession:

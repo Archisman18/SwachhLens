@@ -4,9 +4,11 @@ import CameraCapture from '../components/CameraCapture.jsx'
 import { submitComplaint, uploadPhoto } from '../api/client.js'
 import { saveReportId } from '../api/localReports.js'
 import { addToOfflineQueue } from '../api/offlineQueue.js'
+import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
 export default function ReportPage() {
   const navigate = useNavigate()
+  const { citizen } = useCitizenAuth()
   const [capture, setCapture] = useState(null)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -19,6 +21,7 @@ export default function ReportPage() {
     setSubmitting(true)
     setError(null)
     setQueued(false)
+
     try {
       const photoUrl = await uploadPhoto(capture.file)
       const complaint = await submitComplaint({
@@ -26,19 +29,24 @@ export default function ReportPage() {
         latitude: capture.latitude,
         longitude: capture.longitude,
         comment,
+        citizenName: citizen?.name || 'Verified Citizen',
+        citizenPhone: citizen?.phone || null,
+        citizenEmail: citizen?.email || null,
       })
       saveReportId(complaint.id)
       navigate(`/confirmation/${complaint.id}`)
     } catch (e) {
-      // If offline or network fetch failed, queue locally
       if (!navigator.onLine || e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
         try {
           const fallbackPhoto = 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
-          const queuedItem = addToOfflineQueue({
+          addToOfflineQueue({
             photoUrl: fallbackPhoto,
             latitude: capture.latitude,
             longitude: capture.longitude,
             comment,
+            citizenName: citizen?.name || 'Verified Citizen',
+            citizenPhone: citizen?.phone || null,
+            citizenEmail: citizen?.email || null,
           })
           setQueued(true)
           return
@@ -65,6 +73,36 @@ export default function ReportPage() {
           </p>
         </div>
 
+        {/* Verified Citizen Credibility Badge */}
+        {citizen && (
+          <div style={{
+            background: '#E8F5E9',
+            border: '1px solid #C8E6C9',
+            borderRadius: 'var(--radius)',
+            padding: '14px 20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.82rem',
+            color: '#2E7D32',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.3rem' }}>🛡️</span>
+              <div>
+                <strong>Verified Citizen: {citizen.name}</strong>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: '#1B5E20' }}>
+                  {citizen.phone} &middot; {citizen.email}
+                </span>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '700', color: 'var(--forest)' }}>
+              Verified Reporter
+            </span>
+          </div>
+        )}
+
         <div className="card" style={{ padding: '32px' }}>
           <div className="form-group">
             <label className="form-label">Step 1 &middot; Photo &amp; Location</label>
@@ -72,7 +110,7 @@ export default function ReportPage() {
           </div>
 
           <div className="form-group" style={{ marginTop: '24px' }}>
-            <label className="form-label">Step 2 &middot; Optional Details</label>
+            <label className="form-label">Step 2 &middot; Incident Notes</label>
             <textarea
               className="form-textarea"
               placeholder="e.g. Near bus stop, blocking pedestrian pathway, recurring problem..."
@@ -84,11 +122,11 @@ export default function ReportPage() {
 
           <button
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '12px', padding: '16px' }}
+            style={{ width: '100%', marginTop: '24px', padding: '16px' }}
             disabled={!capture || submitting}
             onClick={handleSubmit}
           >
-            {submitting ? 'Submitting & Running AI Analysis...' : 'Submit Waste Report'}
+            {submitting ? 'Submitting & Running AI Analysis...' : 'Submit Verified Waste Report'}
           </button>
 
           {queued && (

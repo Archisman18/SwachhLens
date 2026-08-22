@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState(new Date())
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [mobileTab, setMobileTab] = useState('map')
 
   async function refresh() {
     try {
@@ -257,15 +258,39 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── Mobile Tab Switcher (Visible only on < md screens) ── */}
+      <div className="md:hidden flex border-b border-stone-border bg-white flex-shrink-0">
+        <button
+          onClick={() => setMobileTab('map')}
+          className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider text-center transition-colors ${
+            mobileTab === 'map'
+              ? 'text-forest border-b-2 border-forest bg-cream/50'
+              : 'text-stone hover:text-charcoal'
+          }`}
+        >
+          🗺️ Live Map ({hotspots.length})
+        </button>
+        <button
+          onClick={() => setMobileTab('queue')}
+          className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider text-center transition-colors ${
+            mobileTab === 'queue'
+              ? 'text-forest border-b-2 border-forest bg-cream/50'
+              : 'text-stone hover:text-charcoal'
+          }`}
+        >
+          📋 Triage Queue ({queue.length})
+        </button>
+      </div>
+
       {/* ── Main Work Area ── */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Map View */}
-        <div className="flex-1 h-full relative">
+        {/* Map View */}
+        <div className={`flex-1 h-full relative ${mobileTab === 'map' ? 'block' : 'hidden md:block'}`}>
           <MapView complaints={hotspots} />
         </div>
 
-        {/* Right: Priority Queue Sidebar */}
-        <div className="w-96 h-full border-l border-stone-border flex-shrink-0">
+        {/* Priority Queue Sidebar */}
+        <div className={`w-full md:w-96 h-full md:border-l border-stone-border flex-shrink-0 ${mobileTab === 'queue' ? 'block' : 'hidden md:block'}`}>
           <ComplaintQueue
             complaints={queue}
             onSelect={(id) => navigate(`/complaint/${id}`)}

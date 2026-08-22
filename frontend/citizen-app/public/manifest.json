@@ -1,0 +1,48 @@
+{
+  "name": "SwachhLens — Civic Waste Triage",
+  "short_name": "SwachhLens",
+  "description": "AI-Powered Civic Waste Reporting, Automated Triage, and Municipal Action System.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#2D5A3D",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-svg.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "government", "social", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Report Waste Now",
+      "short_name": "Report",
+      "description": "Capture a geotagged photo of street waste",
+      "url": "/report",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Submitted Reports",
+      "short_name": "My Reports",
+      "description": "View tracking and resolution status",
+      "url": "/my-reports",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

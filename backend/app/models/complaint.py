@@ -63,5 +63,9 @@ class Complaint(Base):
     )
     resolution_photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    citizen_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    citizen_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    citizen_email: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

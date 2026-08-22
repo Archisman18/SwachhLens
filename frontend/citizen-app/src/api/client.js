@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-export async function submitComplaint({ photoUrl, latitude, longitude, comment }) {
+export async function submitComplaint({ photoUrl, latitude, longitude, comment, citizenName, citizenPhone, citizenEmail }) {
   const res = await fetch(`${API_BASE}/complaints`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -11,6 +11,9 @@ export async function submitComplaint({ photoUrl, latitude, longitude, comment }
       latitude,
       longitude,
       comment: comment || null,
+      citizen_name: citizenName || null,
+      citizen_phone: citizenPhone || null,
+      citizen_email: citizenEmail || null,
     }),
   })
   if (!res.ok) throw new Error(`Submit failed: ${res.status}`)

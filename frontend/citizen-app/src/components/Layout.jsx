@@ -1,13 +1,50 @@
 import React, { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
+import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { citizen, logout: citizenLogout } = useCitizenAuth()
   const [queuedCount, setQueuedCount] = useState(0)
   const [activeSection, setActiveSection] = useState('home')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installed, setInstalled] = useState(false)
 
+  // Listen for PWA Install Prompt
+  useEffect(() => {
+    function handleBeforeInstallPrompt(e) {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+
+    function handleAppInstalled() {
+      setInstalled(true)
+      setInstallPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  async function handleInstallClick() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setInstalled(true)
+    }
+    setInstallPrompt(null)
+  }
+
+  // Offline queue listener
   useEffect(() => {
     function updateQueueState() {
       const q = getOfflineQueue()
@@ -112,7 +149,8 @@ export default function Layout() {
   }, [location.pathname, location.hash])
 
   function handleHomeClick(e) {
-    e.preventDefault()
+    e?.preventDefault?.()
+    setMobileMenuOpen(false)
     setActiveSection('home')
     if (location.pathname !== '/') {
       navigate('/')
@@ -126,7 +164,8 @@ export default function Layout() {
   }
 
   function handleSectionClick(e, sectionId) {
-    e.preventDefault()
+    e?.preventDefault?.()
+    setMobileMenuOpen(false)
     setActiveSection(sectionId)
     if (location.pathname !== '/') {
       navigate(`/#${sectionId}`)
@@ -136,8 +175,13 @@ export default function Layout() {
     }
   }
 
+  function handleCitizenLogout() {
+    citizenLogout()
+    navigate('/citizen-login', { replace: true })
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col app-shell">
       {/* Top Banner / Announcement Ticker */}
       <div className="marquee">
         <div className="marquee-inner">
@@ -154,7 +198,8 @@ export default function Layout() {
           </Link>
         </div>
 
-        <nav>
+        {/* Desktop Nav Links */}
+        <nav className="desktop-nav">
           <ul className="navbar-links">
             <li>
               <a
@@ -217,36 +262,160 @@ export default function Layout() {
           </ul>
         </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Actions & Hamburger Toggle */}
+        <div className="navbar-actions">
+          {citizen && (
+            <div className="desktop-only-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'var(--cream-dark)', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--forest)' }} title={`${citizen.name} (${citizen.phone})`}>
+                ✓ {citizen.name.split(' ')[0]}
+              </span>
+              <button
+                onClick={handleCitizenLogout}
+                style={{ background: 'none', border: 'none', fontSize: '0.7rem', color: 'var(--stone)', cursor: 'pointer', textDecoration: 'underline' }}
+                title="Sign Out Citizen"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+
           <a
             href="http://localhost:5174/login"
-            className="btn btn-outline"
-            style={{ padding: '8px 18px', fontSize: '0.72rem', borderColor: 'var(--stone-light)' }}
+            className="btn btn-outline desktop-only-btn"
+            style={{ padding: '8px 16px', fontSize: '0.72rem', borderColor: 'var(--stone-light)' }}
             title="Municipal Authority Login"
           >
             🛡️ Officer Login
           </a>
-          <Link to="/report" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.75rem' }}>
+
+          <Link to="/report" className="btn btn-primary nav-report-btn">
             Report Waste
           </Link>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </header>
 
+      {/* Mobile Drawer Navigation */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <span className="font-serif text-lg font-bold text-charcoal">
+                Swachh<span className="italic text-forest">Lens</span>
+              </span>
+              <button
+                className="close-drawer-btn"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <ul className="mobile-nav-list">
+              <li>
+                <a
+                  href="/"
+                  onClick={handleHomeClick}
+                  className={activeSection === 'home' ? 'active-mobile-link' : ''}
+                >
+                  🏡 Home
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#about"
+                  onClick={(e) => handleSectionClick(e, 'about')}
+                  className={activeSection === 'about' ? 'active-mobile-link' : ''}
+                >
+                  🌿 About Initiative
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#how-it-works"
+                  onClick={(e) => handleSectionClick(e, 'how-it-works')}
+                  className={activeSection === 'how-it-works' ? 'active-mobile-link' : ''}
+                >
+                  ⚙️ How It Works
+                </a>
+              </li>
+              <li>
+                <Link
+                  to="/my-reports"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={activeSection === 'my-reports' ? 'active-mobile-link' : ''}
+                >
+                  📋 My Submitted Reports
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/report"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mobile-report-link"
+                >
+                  📸 Report Waste Now
+                </Link>
+              </li>
+            </ul>
+
+            <div className="mobile-drawer-footer">
+              {citizen && (
+                <div style={{ marginBottom: '14px', padding: '12px', background: 'var(--cream-dark)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--forest)' }}>
+                      ✓ {citizen.name}
+                    </span>
+                    <button
+                      onClick={handleCitizenLogout}
+                      style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: '#C62828', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline' }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                  <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--stone)', marginTop: '2px' }}>
+                    {citizen.phone}
+                  </span>
+                </div>
+              )}
+
+              {installPrompt && (
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="btn btn-outline w-full mb-3"
+                  style={{ width: '100%', justifyContent: 'center', borderColor: 'var(--forest)', color: 'var(--forest)' }}
+                >
+                  📲 Install Web App
+                </button>
+              )}
+
+              <a
+                href="http://localhost:5174/login"
+                className="btn btn-outline w-full"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '0.75rem' }}
+              >
+                🛡️ Municipal Officer Login
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offline Alert Banner */}
       {queuedCount > 0 && (
-        <div style={{
-          background: '#FFF3E0',
-          borderBottom: '1px solid #FFE0B2',
-          padding: '10px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          fontSize: '0.8rem',
-          color: '#E65100',
-          fontWeight: '500'
-        }}>
+        <div className="offline-banner">
           <span>⚡</span>
-          <span>{queuedCount} report{queuedCount > 1 ? 's' : ''} queued offline — will automatically submit when online.</span>
+          <span>{queuedCount} report{queuedCount > 1 ? 's' : ''} saved offline — auto-syncing when connected.</span>
         </div>
       )}
 
@@ -254,6 +423,27 @@ export default function Layout() {
       <main style={{ flex: 1 }}>
         <Outlet />
       </main>
+
+      {/* PWA Floating Install Prompt */}
+      {installPrompt && !installed && (
+        <div className="pwa-install-banner">
+          <div className="pwa-install-info">
+            <span className="pwa-icon">🌿</span>
+            <div>
+              <strong>Install SwachhLens</strong>
+              <p>Add to home screen for instant camera access &amp; offline reports.</p>
+            </div>
+          </div>
+          <div className="pwa-install-actions">
+            <button onClick={handleInstallClick} className="btn-pwa-install">
+              Install
+            </button>
+            <button onClick={() => setInstallPrompt(null)} className="btn-pwa-dismiss">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Editorial Footer */}
       <footer className="footer">

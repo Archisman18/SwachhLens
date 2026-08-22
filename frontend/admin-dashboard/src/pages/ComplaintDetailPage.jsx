@@ -184,6 +184,47 @@ export default function ComplaintDetailPage() {
               </div>
             </div>
 
+            {/* Citizen Credibility Card */}
+            <div className="bg-white rounded-lg border border-stone-border p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] uppercase font-semibold tracking-wider text-stone">
+                  CITIZEN CREDIBILITY &amp; IDENTITY
+                </span>
+                {complaint.citizen_name || complaint.citizen_phone ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-forest bg-[#E8F5E9] px-2.5 py-0.5 rounded-full border border-[#C8E6C9]">
+                    ✓ Verified Citizen
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-stone bg-cream-dark px-2.5 py-0.5 rounded-full">
+                    Anonymous Report
+                  </span>
+                )}
+              </div>
+
+              {complaint.citizen_name || complaint.citizen_phone ? (
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-stone block">Citizen Name</span>
+                    <strong className="text-charcoal text-sm">{complaint.citizen_name || 'Registered Citizen'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-stone block">Contact Number</span>
+                    <strong className="text-charcoal font-mono text-sm">{complaint.citizen_phone || 'N/A'}</strong>
+                  </div>
+                  {complaint.citizen_email && (
+                    <div className="col-span-2">
+                      <span className="text-stone block">Email</span>
+                      <strong className="text-charcoal text-xs">{complaint.citizen_email}</strong>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-stone italic">
+                  This report was submitted anonymously without verified citizen credentials.
+                </p>
+              )}
+            </div>
+
             {/* Resolution Photo Card (Feature 2.4) */}
             {complaint.resolution_photo_url && (
               <div className="bg-white rounded-lg border border-stone-border overflow-hidden shadow-sm">

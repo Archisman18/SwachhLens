@@ -41,6 +41,9 @@ CREATE TABLE complaints (
     assigned_vehicle TEXT,
     duplicate_of    UUID REFERENCES complaints(id),
     resolution_photo_url TEXT,
+    citizen_name    VARCHAR(100),
+    citizen_phone   VARCHAR(30),
+    citizen_email   VARCHAR(100),
     reported_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
