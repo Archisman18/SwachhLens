@@ -1,7 +1,8 @@
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -68,18 +69,20 @@ async def get_analytics(db: AsyncSession = Depends(get_db)):
     # ── Daily trend (last 30 days) ──────────────────────────────
     cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     trend_query = (
-        select(
-            cast(Complaint.reported_at, Date).label("date"),
-            func.count(Complaint.id).label("count"),
-        )
+        select(Complaint.reported_at)
         .where(Complaint.reported_at >= cutoff)
-        .group_by(cast(Complaint.reported_at, Date))
-        .order_by(cast(Complaint.reported_at, Date))
+        .order_by(Complaint.reported_at)
     )
     trend_result = await db.execute(trend_query)
+    counts = Counter()
+    for (rep_at,) in trend_result.all():
+        if rep_at:
+            d_str = rep_at.strftime("%Y-%m-%d") if hasattr(rep_at, "strftime") else str(rep_at)[:10]
+            counts[d_str] += 1
+
     daily_trend = [
-        {"date": str(row.date), "count": row.count}
-        for row in trend_result.all()
+        {"date": d, "count": c}
+        for d, c in sorted(counts.items())
     ]
 
     return {

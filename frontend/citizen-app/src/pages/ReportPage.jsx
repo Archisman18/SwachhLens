@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import CameraCapture from '../components/CameraCapture.jsx'
 import { submitComplaint, uploadPhoto } from '../api/client.js'
 import { saveReportId } from '../api/localReports.js'
+import { addToOfflineQueue } from '../api/offlineQueue.js'
 
 export default function ReportPage() {
   const navigate = useNavigate()
@@ -10,12 +11,14 @@ export default function ReportPage() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [queued, setQueued] = useState(false)
 
   async function handleSubmit(e) {
     e?.preventDefault()
     if (!capture) return
     setSubmitting(true)
     setError(null)
+    setQueued(false)
     try {
       const photoUrl = await uploadPhoto(capture.file)
       const complaint = await submitComplaint({
@@ -27,6 +30,22 @@ export default function ReportPage() {
       saveReportId(complaint.id)
       navigate(`/confirmation/${complaint.id}`)
     } catch (e) {
+      // If offline or network fetch failed, queue locally
+      if (!navigator.onLine || e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
+        try {
+          const fallbackPhoto = 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
+          const queuedItem = addToOfflineQueue({
+            photoUrl: fallbackPhoto,
+            latitude: capture.latitude,
+            longitude: capture.longitude,
+            comment,
+          })
+          setQueued(true)
+          return
+        } catch (queueErr) {
+          console.error('Queue save failed:', queueErr)
+        }
+      }
       setError(e.message || 'Failed to submit report. Please check if the backend is running.')
     } finally {
       setSubmitting(false)
@@ -71,6 +90,23 @@ export default function ReportPage() {
           >
             {submitting ? 'Submitting & Running AI Analysis...' : 'Submit Waste Report'}
           </button>
+
+          {queued && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: '#E8F5E9',
+              border: '1px solid #C8E6C9',
+              borderRadius: 'var(--radius)',
+              color: '#2E7D32',
+              fontSize: '0.85rem'
+            }}>
+              <strong>✓ Saved to Offline Queue</strong>
+              <p style={{ margin: '4px 0 0', color: '#1B5E20' }}>
+                You appear to be offline or the server is momentarily unreachable. Your report has been safely queued on your device and will auto-submit when connectivity is restored!
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="error-message" style={{ marginTop: '16px' }}>

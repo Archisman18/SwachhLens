@@ -1,8 +1,40 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
 
 export default function Layout() {
   const location = useLocation()
+  const [queuedCount, setQueuedCount] = useState(0)
+
+  useEffect(() => {
+    function updateQueueState() {
+      const q = getOfflineQueue()
+      setQueuedCount(q.length)
+    }
+
+    updateQueueState()
+
+    async function handleOnline() {
+      updateQueueState()
+      const flushed = await flushOfflineQueue()
+      if (flushed.length > 0) {
+        updateQueueState()
+      }
+    }
+
+    window.addEventListener('online', handleOnline)
+    const interval = setInterval(updateQueueState, 5000)
+
+    // Attempt flush on mount if online
+    if (navigator.onLine) {
+      flushOfflineQueue().then(updateQueueState)
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,6 +77,24 @@ export default function Layout() {
           </Link>
         </div>
       </header>
+
+      {queuedCount > 0 && (
+        <div style={{
+          background: '#FFF3E0',
+          borderBottom: '1px solid #FFE0B2',
+          padding: '10px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontSize: '0.8rem',
+          color: '#E65100',
+          fontWeight: '500'
+        }}>
+          <span>⚡</span>
+          <span>{queuedCount} report{queuedCount > 1 ? 's' : ''} queued offline — will automatically submit when online.</span>
+        </div>
+      )}
 
       {/* Main Page Content */}
       <main style={{ flex: 1 }}>
