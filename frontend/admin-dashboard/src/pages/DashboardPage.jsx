@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import MapView from '../components/MapView.jsx'
 import ComplaintQueue from '../components/ComplaintQueue.jsx'
 import { getHotspots, getQueue, getAnalytics } from '../api/client.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [hotspots, setHotspots] = useState([])
   const [queue, setQueue] = useState([])
   const [analytics, setAnalytics] = useState(null)
@@ -107,7 +109,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             className={`text-xs uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border transition-colors ${
@@ -121,11 +123,11 @@ export default function DashboardPage() {
 
           <button
             onClick={refresh}
-            className="text-xs text-stone hover:text-charcoal flex items-center gap-1.5 transition-colors"
+            className="text-xs text-stone hover:text-charcoal hidden sm:flex items-center gap-1.5 transition-colors"
             title="Force refresh data"
           >
             <span>🔄</span>
-            <span>Sync: {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span>Sync: {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </button>
 
           <a
@@ -134,8 +136,23 @@ export default function DashboardPage() {
             rel="noreferrer"
             className="text-xs uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border border-stone-border bg-cream-dark text-charcoal hover:bg-forest hover:text-white transition-colors"
           >
-            Citizen App &rarr;
+            Citizen Portal ↗
           </a>
+
+          {user && (
+            <div className="flex items-center gap-2 pl-2 border-l border-stone-border">
+              <span className="text-xs text-stone font-medium hidden md:inline" title={user.email}>
+                👤 {user.displayName || user.email.split('@')[0]}
+              </span>
+              <button
+                onClick={logout}
+                className="text-xs text-stone hover:text-red-700 underline font-medium"
+                title="Sign out"
+              >
+                Log Out
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

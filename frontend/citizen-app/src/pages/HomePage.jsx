@@ -23,7 +23,21 @@ export default function HomePage() {
             style={{ padding: '16px 36px', fontSize: '0.85rem' }}
             onClick={(e) => {
               e.preventDefault()
-              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
+              const el = document.getElementById('how-it-works')
+              if (el) {
+                const targetY = Math.max(0, el.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 76)
+                const startY = window.pageYOffset || document.documentElement.scrollTop
+                const diff = targetY - startY
+                const startTime = performance.now()
+                function step(currentTime) {
+                  const elapsed = currentTime - startTime
+                  const progress = Math.min(elapsed / 700, 1)
+                  const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2
+                  window.scrollTo(0, startY + diff * ease)
+                  if (progress < 1) window.requestAnimationFrame(step)
+                }
+                window.requestAnimationFrame(step)
+              }
             }}
           >
             Explore Process

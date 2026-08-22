@@ -68,16 +68,46 @@ export default function Layout() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [location.pathname])
 
+  // Cubic ease-in-out animated smooth scroll
+  function animatedScrollTo(targetY, duration = 650) {
+    const startY = window.pageYOffset || document.documentElement.scrollTop
+    const difference = targetY - startY
+    if (Math.abs(difference) < 4) return
+    const startTime = performance.now()
+
+    function step(currentTime) {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const ease = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2
+
+      window.scrollTo(0, startY + difference * ease)
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step)
+      }
+    }
+
+    window.requestAnimationFrame(step)
+  }
+
+  function scrollToTargetId(targetId) {
+    const targetEl = document.getElementById(targetId)
+    if (targetEl) {
+      const navbarHeight = 76
+      const targetY = Math.max(0, targetEl.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - navbarHeight)
+      animatedScrollTo(targetY, 700)
+    }
+  }
+
   // Handle hash navigation on initial load or change
   useEffect(() => {
     if (location.pathname === '/' && location.hash) {
       const targetId = location.hash.replace('#', '')
       setTimeout(() => {
-        const targetEl = document.getElementById(targetId)
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      }, 100)
+        scrollToTargetId(targetId)
+      }, 120)
     }
   }, [location.pathname, location.hash])
 
@@ -86,10 +116,12 @@ export default function Layout() {
     setActiveSection('home')
     if (location.pathname !== '/') {
       navigate('/')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setTimeout(() => {
+        animatedScrollTo(0, 600)
+      }, 80)
     } else {
       window.history.pushState(null, '', '/')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      animatedScrollTo(0, 600)
     }
   }
 
@@ -100,10 +132,7 @@ export default function Layout() {
       navigate(`/#${sectionId}`)
     } else {
       window.history.pushState(null, '', `/#${sectionId}`)
-      const targetEl = document.getElementById(sectionId)
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
+      scrollToTargetId(sectionId)
     }
   }
 
@@ -188,7 +217,15 @@ export default function Layout() {
           </ul>
         </nav>
 
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <a
+            href="http://localhost:5174/login"
+            className="btn btn-outline"
+            style={{ padding: '8px 18px', fontSize: '0.72rem', borderColor: 'var(--stone-light)' }}
+            title="Municipal Authority Login"
+          >
+            🛡️ Officer Login
+          </a>
           <Link to="/report" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '0.75rem' }}>
             Report Waste
           </Link>
