@@ -3,11 +3,10 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
 import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-const rawAdminBase = import.meta.env.VITE_ADMIN_BASE || import.meta.env.VITE_ADMIN_URL || (isLocal ? 'http://localhost:5174' : 'https://swachhlens1.vercel.app')
-const cleanAdminBase = rawAdminBase.replace(/\/login\/?$/, '').replace(/\/$/, '')
-const ADMIN_BASE = cleanAdminBase
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || `${cleanAdminBase}/login`
+// Environment-aware cross portal routing
+const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const ADMIN_BASE = isDev ? 'http://localhost:5174' : 'https://swachhlens1.vercel.app'
+const ADMIN_URL = isDev ? 'http://localhost:5174/login' : 'https://swachhlens1.vercel.app/login'
 
 export default function Layout() {
   const location = useLocation()
