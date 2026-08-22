@@ -21,7 +21,10 @@ app.include_router(dashboard.router)
 
 @app.on_event("startup")
 async def on_startup():
-    await create_tables()
+    try:
+        await create_tables()
+    except Exception as e:
+        print(f"[Startup Warning] Database initialization deferred: {e}")
 
 
 @app.get("/health")
