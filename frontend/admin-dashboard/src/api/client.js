@@ -28,12 +28,20 @@ export async function getComplaint(id) {
   return res.json()
 }
 
-export async function updateStatus(id, status) {
+export async function updateStatus(id, status, resolution_photo_url = null) {
+  const body = { status }
+  if (resolution_photo_url) body.resolution_photo_url = resolution_photo_url
   const res = await fetch(`${API_BASE}/complaints/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`Status update failed: ${res.status}`)
+  return res.json()
+}
+
+export async function getAnalytics() {
+  const res = await fetch(`${API_BASE}/dashboard/analytics`)
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
   return res.json()
 }

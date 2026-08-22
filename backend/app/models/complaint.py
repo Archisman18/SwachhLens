@@ -27,6 +27,7 @@ class Complaint(Base):
     duplicate_of: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("complaints.id"), nullable=True
     )
+    resolution_photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     reported_at: Mapped[datetime] = mapped_column(DateTime)
     updated_at: Mapped[datetime] = mapped_column(DateTime)

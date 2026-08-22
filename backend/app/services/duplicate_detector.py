@@ -56,3 +56,31 @@ async def find_duplicate_candidate(
             return str(complaint.id)
 
     return None
+
+
+async def count_nearby_reports(
+    db: AsyncSession,
+    latitude: float,
+    longitude: float,
+    radius_meters: float = 50,
+    hours: int = 48,
+) -> int:
+    """
+    Count non-duplicate complaints within `radius_meters` of the given
+    point that were reported in the last `hours`.  Uses in-Python
+    Haversine filtering so it works on both SQLite and Postgres.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    query = (
+        select(Complaint)
+        .where(
+            Complaint.status != "duplicate",
+            Complaint.reported_at > cutoff,
+        )
+    )
+    result = await db.execute(query)
+    count = 0
+    for c in result.scalars():
+        if _haversine_meters(latitude, longitude, c.latitude, c.longitude) <= radius_meters:
+            count += 1
+    return count

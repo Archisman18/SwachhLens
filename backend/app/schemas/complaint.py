@@ -19,6 +19,7 @@ class ComplaintAssign(BaseModel):
 
 class ComplaintStatusUpdate(BaseModel):
     status: str  # reported | assigned | cleaned | verified | duplicate
+    resolution_photo_url: Optional[str] = None
 
 
 class ComplaintOut(BaseModel):
@@ -37,5 +38,6 @@ class ComplaintOut(BaseModel):
     assigned_team: Optional[str]
     assigned_vehicle: Optional[str]
     duplicate_of: Optional[uuid.UUID]
+    resolution_photo_url: Optional[str]
     reported_at: datetime
     updated_at: datetime

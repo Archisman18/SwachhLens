@@ -13,6 +13,7 @@ from app.schemas.complaint import (
 )
 from app.services import (
     classifier, volume_estimator, duplicate_detector, priority_scorer, dispatch_recommender,
+    geocoder, notifier,
 )
 
 router = APIRouter(prefix="/complaints", tags=["complaints"])
@@ -59,7 +60,17 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
         complaint.status = "duplicate"
         complaint.duplicate_of = duplicate_id
     else:
-        score = priority_scorer.compute_priority_score(complaint.volume_bucket)
+        report_frequency = await duplicate_detector.count_nearby_reports(
+            db, payload.latitude, payload.longitude
+        )
+        location_sensitivity = await geocoder.get_location_sensitivity(
+            payload.latitude, payload.longitude
+        )
+        score = priority_scorer.compute_priority_score(
+            complaint.volume_bucket,
+            location_sensitivity=location_sensitivity,
+            report_frequency=max(report_frequency, 1),
+        )
         urgency = priority_scorer.urgency_from_score(score)
         recommendation = dispatch_recommender.recommend_response(
             complaint.waste_type, complaint.volume_bucket, urgency
@@ -115,7 +126,31 @@ async def update_status(
     complaint = await db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
+
+    # Feature 2.4: require resolution_photo_url when transitioning to "verified"
+    if payload.status == "verified" and not payload.resolution_photo_url:
+        raise HTTPException(
+            status_code=422,
+            detail="resolution_photo_url is required when marking a complaint as verified",
+        )
+
+    old_status = complaint.status
     complaint.status = payload.status
+
+    if payload.resolution_photo_url:
+        complaint.resolution_photo_url = payload.resolution_photo_url
+
+    complaint.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(complaint)
+
+    # Feature 2.3: fire notification (non-blocking)
+    await notifier.notify_status_change(
+        complaint_id=complaint_id,
+        old_status=old_status,
+        new_status=payload.status,
+        latitude=complaint.latitude,
+        longitude=complaint.longitude,
+    )
+
     return complaint

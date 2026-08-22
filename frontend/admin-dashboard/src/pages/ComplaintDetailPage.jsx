@@ -10,6 +10,8 @@ export default function ComplaintDetailPage() {
   const [vehicle, setVehicle] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [resolutionPhotoUrl, setResolutionPhotoUrl] = useState('')
+  const [showResolutionInput, setShowResolutionInput] = useState(false)
 
   async function load() {
     try {
@@ -36,16 +38,28 @@ export default function ComplaintDetailPage() {
   }
 
   async function handleStatusChange(status) {
+    // If transitioning to "verified", show the resolution photo input first
+    if (status === 'verified' && !resolutionPhotoUrl) {
+      setShowResolutionInput(true)
+      return
+    }
+
     setSaving(true)
+    setError(null)
     try {
-      await updateStatus(id, status)
+      const photoUrl = status === 'verified' ? resolutionPhotoUrl : null
+      await updateStatus(id, status, photoUrl)
+      setShowResolutionInput(false)
+      setResolutionPhotoUrl('')
       await load()
+    } catch (e) {
+      setError(e.message)
     } finally {
       setSaving(false)
     }
   }
 
-  if (error) {
+  if (error && !complaint) {
     return (
       <div className="min-h-screen bg-cream p-8 flex items-center justify-center">
         <div className="bg-white p-6 rounded-lg border border-stone-border text-center max-w-md">
@@ -88,6 +102,13 @@ export default function ComplaintDetailPage() {
             </code>
           </div>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-4 bg-[#FDE8E8] border border-[#FBD5D5] text-[#C62828] text-xs font-semibold px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* 2-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -162,6 +183,25 @@ export default function ComplaintDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Resolution Photo Card (Feature 2.4) */}
+            {complaint.resolution_photo_url && (
+              <div className="bg-white rounded-lg border border-stone-border overflow-hidden shadow-sm">
+                <div className="px-6 pt-5 pb-2">
+                  <span className="text-[10px] uppercase font-semibold tracking-wider text-forest">
+                    ✓ VERIFIED CLEANUP — AFTER PHOTO
+                  </span>
+                </div>
+                <img
+                  src={complaint.resolution_photo_url}
+                  alt="Resolution photograph — verified cleanup"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="p-4 text-xs text-stone">
+                  Attached by the cleanup crew as proof of resolution.
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Dispatch Action Panel */}
@@ -281,6 +321,57 @@ export default function ComplaintDetailPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Resolution Photo Input (Feature 2.4) */}
+              {showResolutionInput && (
+                <div className="mt-4 p-4 bg-cream rounded-lg border border-stone-border/60 space-y-3">
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-forest block mb-1">
+                      📷 PHOTO PROOF REQUIRED
+                    </span>
+                    <p className="text-xs text-stone">
+                      Upload or paste the URL of the after-cleanup photo to verify resolution.
+                    </p>
+                  </div>
+
+                  <input
+                    type="url"
+                    placeholder="https://... (URL of the resolution photo)"
+                    value={resolutionPhotoUrl}
+                    onChange={(e) => setResolutionPhotoUrl(e.target.value)}
+                    className="w-full text-xs px-3 py-2.5 bg-white border border-stone-border rounded-md outline-none focus:border-forest text-charcoal"
+                  />
+
+                  {resolutionPhotoUrl && (
+                    <div className="rounded-md overflow-hidden border border-stone-border">
+                      <img
+                        src={resolutionPhotoUrl}
+                        alt="Resolution preview"
+                        className="w-full h-32 object-cover"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange('verified')}
+                      disabled={saving || !resolutionPhotoUrl}
+                      className="flex-1 text-xs uppercase tracking-wider font-semibold py-2.5 px-4 rounded-full bg-forest text-white hover:bg-forest-dark disabled:opacity-50 transition-colors"
+                    >
+                      {saving ? 'Verifying...' : 'Confirm Verified Clean'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowResolutionInput(false); setResolutionPhotoUrl('') }}
+                      className="text-xs px-3 py-2.5 rounded-full bg-cream-dark text-stone hover:text-charcoal transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
