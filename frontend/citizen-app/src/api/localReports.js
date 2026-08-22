@@ -15,3 +15,11 @@ export function getReportIds() {
     return []
   }
 }
+
+export function syncValidReportIds(validIds) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(validIds))
+  } catch {
+    // ignore storage write errors
+  }
+}

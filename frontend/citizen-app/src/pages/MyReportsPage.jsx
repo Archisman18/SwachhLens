@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getComplaintStatus } from '../api/client.js'
-import { getReportIds } from '../api/localReports.js'
+import { getReportIds, syncValidReportIds } from '../api/localReports.js'
 
 export default function MyReportsPage() {
   const navigate = useNavigate()
@@ -22,6 +22,7 @@ export default function MyReportsPage() {
         .map((r) => r.value)
 
       setReports(valid)
+      syncValidReportIds(valid.map((r) => r.id))
       setLoading(false)
     }
     load()
