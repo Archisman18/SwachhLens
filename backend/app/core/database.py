@@ -1,3 +1,6 @@
+import ssl
+from uuid import uuid4
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -13,16 +16,20 @@ _is_sqlite = settings.database_url.startswith("sqlite")
 
 _engine_kwargs: dict = {
     "echo": settings.env == "development",
+    "poolclass": NullPool,
 }
 
 if _is_sqlite:
-    # aiosqlite does not support connection pooling or Postgres-specific connect_args
-    _engine_kwargs["poolclass"] = NullPool
+    # aiosqlite does not support Postgres-specific connect_args
     _engine_kwargs["connect_args"] = {}
 else:
-    # Postgres (asyncpg) — add any Postgres-specific connect_args here
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
     _engine_kwargs["connect_args"] = {
+        "ssl": ssl_context,
         "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
     }
 
 engine = create_async_engine(settings.database_url, **_engine_kwargs)

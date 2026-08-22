@@ -37,23 +37,34 @@ async def find_duplicate_candidate(
     if waste_type is None:
         return None
 
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=DUPLICATE_TIME_WINDOW_HOURS)
-
-    query = (
-        select(Complaint)
-        .where(
-            Complaint.status != "duplicate",
-            Complaint.waste_type == waste_type,
-            Complaint.reported_at > cutoff,
-        )
-        .order_by(Complaint.reported_at.desc())
+    query = text(
+        """
+        SELECT id FROM complaints
+        WHERE status != 'duplicate'
+          AND waste_type = :waste_type
+          AND reported_at > now() - make_interval(hours => :hours)
+          AND ST_DWithin(
+                location,
+                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                :radius
+              )
+        ORDER BY reported_at DESC
+        LIMIT 1
+        """
     )
-
-    result = await db.execute(query)
-    for complaint in result.scalars():
-        dist = _haversine_meters(latitude, longitude, complaint.latitude, complaint.longitude)
-        if dist <= DUPLICATE_RADIUS_METERS:
-            return str(complaint.id)
+    result = await db.execute(
+        query,
+        {
+            "waste_type": waste_type,
+            "hours": DUPLICATE_TIME_WINDOW_HOURS,
+            "lng": longitude,
+            "lat": latitude,
+            "radius": DUPLICATE_RADIUS_METERS,
+        },
+    )
+    row = result.first()
+    if row:
+        return str(row[0])
 
     return None
 
@@ -67,7 +78,7 @@ async def count_nearby_reports(
 ) -> int:
     """
     Count non-duplicate complaints within `radius_meters` of the given
-    point that were reported in the last `hours`.  Uses in-Python
+    point that were reported in the last `hours`. Uses in-Python
     Haversine filtering so it works on both SQLite and Postgres.
     """
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
@@ -80,7 +91,7 @@ async def count_nearby_reports(
     )
     result = await db.execute(query)
     count = 0
-    for c in result.scalars():
-        if _haversine_meters(latitude, longitude, c.latitude, c.longitude) <= radius_meters:
+    for complaint in result.scalars():
+        if _haversine_meters(latitude, longitude, complaint.latitude, complaint.longitude) <= radius_meters:
             count += 1
     return count
