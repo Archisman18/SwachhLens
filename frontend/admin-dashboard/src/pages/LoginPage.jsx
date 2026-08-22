@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
+const CITIZEN_URL = import.meta.env.VITE_CITIZEN_URL || 'http://localhost:5173'
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -47,7 +49,7 @@ export default function LoginPage() {
         </div>
 
         <a
-          href="http://localhost:5173"
+          href={CITIZEN_URL}
           className="text-xs uppercase tracking-wider font-semibold px-4 py-2 rounded-full border border-stone-border bg-white text-charcoal hover:bg-forest hover:text-white transition-colors"
         >
           &larr; Switch to Citizen View
@@ -121,7 +123,7 @@ export default function LoginPage() {
 
           <p className="text-[11px] text-stone text-center mt-2">
             Are you a citizen looking to report street waste?{' '}
-            <a href="http://localhost:5173/report" className="text-forest underline font-medium">
+            <a href={`${CITIZEN_URL}/report`} className="text-forest underline font-medium">
               Submit a report here
             </a>
           </p>

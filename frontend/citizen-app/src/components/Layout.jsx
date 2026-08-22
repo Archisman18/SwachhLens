@@ -3,6 +3,9 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
 import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174/login'
+const ADMIN_BASE = import.meta.env.VITE_ADMIN_BASE || 'http://localhost:5174'
+
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -280,7 +283,7 @@ export default function Layout() {
           )}
 
           <a
-            href="http://localhost:5174/login"
+            href={ADMIN_URL}
             className="btn btn-outline desktop-only-btn"
             style={{ padding: '8px 16px', fontSize: '0.72rem', borderColor: 'var(--stone-light)' }}
             title="Municipal Authority Login"
@@ -400,7 +403,7 @@ export default function Layout() {
               )}
 
               <a
-                href="http://localhost:5174/login"
+                href={ADMIN_URL}
                 className="btn btn-outline w-full"
                 style={{ width: '100%', justifyContent: 'center', fontSize: '0.75rem' }}
               >
@@ -463,7 +466,7 @@ export default function Layout() {
               <a href="/" onClick={handleHomeClick}>Home</a>
               <Link to="/report">Report Waste</Link>
               <Link to="/my-reports">My Reports Track</Link>
-              <a href="http://localhost:5174" target="_blank" rel="noreferrer">Control Room</a>
+              <a href={ADMIN_BASE} target="_blank" rel="noreferrer">Control Room</a>
             </div>
 
             <div className="footer-links-column">

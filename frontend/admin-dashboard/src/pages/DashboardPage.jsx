@@ -5,6 +5,8 @@ import ComplaintQueue from '../components/ComplaintQueue.jsx'
 import { getHotspots, getQueue, getAnalytics } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
+const CITIZEN_URL = import.meta.env.VITE_CITIZEN_URL || 'http://localhost:5173'
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -132,7 +134,7 @@ export default function DashboardPage() {
           </button>
 
           <a
-            href="http://localhost:5173"
+            href={CITIZEN_URL}
             target="_blank"
             rel="noreferrer"
             className="text-xs uppercase tracking-wider font-semibold px-3 py-1.5 rounded-full border border-stone-border bg-cream-dark text-charcoal hover:bg-forest hover:text-white transition-colors"

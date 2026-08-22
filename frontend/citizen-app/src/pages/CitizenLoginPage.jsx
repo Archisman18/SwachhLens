@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174/login'
+
 export default function CitizenLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -102,7 +104,7 @@ export default function CitizenLoginPage() {
         </div>
 
         <a
-          href="http://localhost:5174/login"
+          href={ADMIN_URL}
           style={{
             fontSize: '0.75rem',
             textTransform: 'uppercase',
