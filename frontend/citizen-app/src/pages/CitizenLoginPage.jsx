@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174/login'
+const rawAdminBase = import.meta.env.VITE_ADMIN_BASE || import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
+const cleanAdminBase = rawAdminBase.replace(/\/login\/?$/, '').replace(/\/$/, '')
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || `${cleanAdminBase}/login`
 
 export default function CitizenLoginPage() {
   const navigate = useNavigate()

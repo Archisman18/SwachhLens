@@ -3,8 +3,10 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getOfflineQueue, flushOfflineQueue } from '../api/offlineQueue.js'
 import { useCitizenAuth } from '../context/CitizenAuthContext.jsx'
 
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174/login'
-const ADMIN_BASE = import.meta.env.VITE_ADMIN_BASE || 'http://localhost:5174'
+const rawAdminBase = import.meta.env.VITE_ADMIN_BASE || import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
+const cleanAdminBase = rawAdminBase.replace(/\/login\/?$/, '').replace(/\/$/, '')
+const ADMIN_BASE = cleanAdminBase
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || `${cleanAdminBase}/login`
 
 export default function Layout() {
   const location = useLocation()
