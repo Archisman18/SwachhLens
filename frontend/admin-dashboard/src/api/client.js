@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (isLocal ? 'http://localhost:8000' : 'https://swachhlens-backend-3c7.onrender.com')
 
 export async function getHotspots() {
   const res = await fetch(`${API_BASE}/dashboard/hotspots`)

@@ -5,7 +5,8 @@ import ComplaintQueue from '../components/ComplaintQueue.jsx'
 import { getHotspots, getQueue, getAnalytics } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const CITIZEN_URL = import.meta.env.VITE_CITIZEN_URL || 'http://localhost:5173'
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const CITIZEN_URL = (import.meta.env.VITE_CITIZEN_URL || (isLocal ? 'http://localhost:5173' : 'https://swachhlens-rouge.vercel.app')).replace(/\/$/, '')
 
 export default function DashboardPage() {
   const navigate = useNavigate()
