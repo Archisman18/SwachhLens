@@ -2,8 +2,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Postgres connection string (Supabase project settings -> Database -> Connection string)
-    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/swachhlens"
+    # Database connection string
+    # Default: local SQLite for zero-setup dev. Override with a Postgres/Supabase URL:
+    #   postgresql+asyncpg://user:password@localhost:5432/swachhlens
+    database_url: str = "sqlite+aiosqlite:///./swachhlens.db"
 
     # Supabase storage (for uploaded waste photos)
     supabase_url: str = ""

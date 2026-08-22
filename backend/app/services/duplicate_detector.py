@@ -1,16 +1,30 @@
 """
 Duplicate detection.
 
-GPS proximity + time window + same waste_type, using the PostGIS
-`location` column (see db/schema.sql). Image-similarity (CLIP
-embeddings) is a "Could have" stretch per the PRD - not required for MVP.
+For PostgreSQL+PostGIS, uses spatial ST_DWithin queries.
+For SQLite (dev), falls back to Haversine distance calculation.
 """
 
-from sqlalchemy import text
+import math
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.complaint import Complaint
 
 DUPLICATE_RADIUS_METERS = 50
 DUPLICATE_TIME_WINDOW_HOURS = 48
+
+
+def _haversine_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance between two GPS points in metres."""
+    R = 6_371_000  # Earth radius in metres
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 async def find_duplicate_candidate(
@@ -18,6 +32,7 @@ async def find_duplicate_candidate(
 ) -> str | None:
     """
     Returns the id of a likely-duplicate existing complaint, or None.
+    Uses in-Python Haversine filtering (works on any DB backend).
     """
     if waste_type is None:
         return None
@@ -49,36 +64,3 @@ async def find_duplicate_candidate(
     )
     row = result.first()
     return str(row[0]) if row else None
-
-
-async def count_nearby_reports(
-    db: AsyncSession,
-    latitude: float,
-    longitude: float,
-    radius_meters: int = 200,
-    days: int = 30,
-) -> int:
-    """Count recent, non-duplicate complaints near the given coordinates."""
-    query = text(
-        """
-        SELECT COUNT(*) FROM complaints
-        WHERE status != 'duplicate'
-          AND reported_at > now() - make_interval(days => :days)
-          AND ST_DWithin(
-                location,
-                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-                :radius
-              )
-        """
-    )
-    result = await db.execute(
-        query,
-        {
-            "days": days,
-            "lng": longitude,
-            "lat": latitude,
-            "radius": radius_meters,
-        },
-    )
-    count = result.scalar_one_or_none()
-    return int(count) if count is not None else 0

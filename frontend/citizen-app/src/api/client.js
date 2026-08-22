@@ -24,6 +24,12 @@ export async function getComplaintStatus(id) {
 }
 
 export async function uploadPhoto(file) {
+  if (!supabase) {
+    // Development fallback when Supabase storage is not yet connected
+    console.warn('Supabase not configured: using fallback waste photo URL for demonstration.')
+    return 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
+  }
+
   const fileExt = file.name.split('.').pop()
   const fileName = `${crypto.randomUUID()}.${fileExt}`
 

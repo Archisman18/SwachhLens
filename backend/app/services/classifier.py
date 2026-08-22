@@ -2,14 +2,10 @@
 Waste type classification via CLIP zero-shot classification.
 No training data needed - CLIP scores the photo against natural-
 language descriptions of each category and picks the best match.
+
+Model is loaded lazily on first call so the server starts even
+when torch/transformers are not installed.
 """
-
-import io
-import torch
-from PIL import Image
-from transformers import CLIPModel, CLIPProcessor
-
-_MODEL_NAME = "openai/clip-vit-base-patch32"
 
 CATEGORY_PROMPTS = {
     "overflowing_bin": "an overflowing trash bin or dustbin",
@@ -25,12 +21,31 @@ CATEGORY_PROMPTS = {
 
 WASTE_TYPES = list(CATEGORY_PROMPTS.keys())
 
-_model = CLIPModel.from_pretrained(_MODEL_NAME)
-_processor = CLIPProcessor.from_pretrained(_MODEL_NAME)
-_model.eval()
+_MODEL_NAME = "openai/clip-vit-base-patch32"
+_model = None
+_processor = None
+
+
+def _load_model():
+    global _model, _processor
+    if _model is not None:
+        return
+
+    import torch
+    from transformers import CLIPModel, CLIPProcessor
+
+    _model = CLIPModel.from_pretrained(_MODEL_NAME)
+    _processor = CLIPProcessor.from_pretrained(_MODEL_NAME)
+    _model.eval()
 
 
 async def classify_waste(image_bytes: bytes) -> tuple[str, float]:
+    import io
+    import torch
+    from PIL import Image
+
+    _load_model()
+
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     prompts = list(CATEGORY_PROMPTS.values())
 

@@ -1,15 +1,31 @@
-# Python
+# ────────── Python ──────────
 __pycache__/
 *.py[cod]
+*.pyo
+*.egg-info/
+*.egg
 .venv/
 venv/
+env/
 .env
+.env.*
+!.env.example
+*.log
 
-# Node
+# ────────── SQLite / Local Databases ──────────
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ────────── Node & Vite ──────────
 node_modules/
 dist/
+.cache/
+.parcel-cache/
+.vite/
 
-# Datasets / ML files
+# ────────── Datasets / ML files ──────────
 garbage-dataset/
 garbage-classification.zip
 scraped/
@@ -17,17 +33,22 @@ datasets/
 *.csv
 *.zip
 
-# ML models
+# ────────── ML models & checkpoints ──────────
 *.pkl
 *.pt
 *.pth
 *.h5
 *.keras
+*.onnx
+*.safetensors
 
-# IDE
+# ────────── IDE & Editors ──────────
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# ────────── OS ──────────
 .DS_Store
 Thumbs.db
+Desktop.ini

@@ -28,7 +28,7 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
     now = datetime.now(timezone.utc)
 
     complaint = Complaint(
-        id=uuid.uuid4(),
+        id=str(uuid.uuid4()),
         photo_url=payload.photo_url,
         latitude=payload.latitude,
         longitude=payload.longitude,
@@ -57,7 +57,7 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
     )
     if duplicate_id:
         complaint.status = "duplicate"
-        complaint.duplicate_of = uuid.UUID(duplicate_id)
+        complaint.duplicate_of = duplicate_id
     else:
         report_frequency = await duplicate_detector.count_nearby_reports(
             db, payload.latitude, payload.longitude
@@ -91,7 +91,7 @@ async def list_complaints(status: str | None = None, db: AsyncSession = Depends(
 
 
 @router.get("/{complaint_id}", response_model=ComplaintOut)
-async def get_complaint(complaint_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_complaint(complaint_id: str, db: AsyncSession = Depends(get_db)):
     complaint = await db.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
@@ -100,7 +100,7 @@ async def get_complaint(complaint_id: uuid.UUID, db: AsyncSession = Depends(get_
 
 @router.patch("/{complaint_id}/assign", response_model=ComplaintOut)
 async def assign_complaint(
-    complaint_id: uuid.UUID, payload: ComplaintAssign, db: AsyncSession = Depends(get_db)
+    complaint_id: str, payload: ComplaintAssign, db: AsyncSession = Depends(get_db)
 ):
     complaint = await db.get(Complaint, complaint_id)
     if not complaint:
@@ -115,7 +115,7 @@ async def assign_complaint(
 
 @router.patch("/{complaint_id}/status", response_model=ComplaintOut)
 async def update_status(
-    complaint_id: uuid.UUID, payload: ComplaintStatusUpdate, db: AsyncSession = Depends(get_db)
+    complaint_id: str, payload: ComplaintStatusUpdate, db: AsyncSession = Depends(get_db)
 ):
     complaint = await db.get(Complaint, complaint_id)
     if not complaint:
