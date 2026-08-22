@@ -63,6 +63,25 @@ CREATE TRIGGER complaints_set_updated_at
 BEFORE UPDATE ON complaints
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- 7. Storage Bucket RLS Policies (Allow public uploads to 'waste-photos' bucket)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('waste-photos', 'waste-photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public Upload Policy" ON storage.objects;
+CREATE POLICY "Public Upload Policy"
+ON storage.objects
+FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'waste-photos');
+
+DROP POLICY IF EXISTS "Public Select Policy" ON storage.objects;
+CREATE POLICY "Public Select Policy"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'waste-photos');
+
 -- Example duplicate-candidate query (GPS proximity + time window):
 -- SELECT id FROM complaints
 -- WHERE status != 'duplicate'

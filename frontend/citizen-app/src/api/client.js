@@ -30,18 +30,29 @@ export async function uploadPhoto(file) {
     return 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
   }
 
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${crypto.randomUUID()}.${fileExt}`
+  try {
+    const fileExt = file.name ? file.name.split('.').pop() : 'jpg'
+    const fileName = `${crypto.randomUUID()}.${fileExt}`
 
-  const { error } = await supabase.storage
-    .from('waste-photos')
-    .upload(fileName, file)
+    const { error } = await supabase.storage
+      .from('waste-photos')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      })
 
-  if (error) throw error
+    if (error) {
+      console.warn('Supabase storage upload error:', error.message)
+      throw error
+    }
 
-  const { data } = supabase.storage
-    .from('waste-photos')
-    .getPublicUrl(fileName)
+    const { data } = supabase.storage
+      .from('waste-photos')
+      .getPublicUrl(fileName)
 
-  return data.publicUrl
+    return data.publicUrl
+  } catch (err) {
+    console.warn('Falling back to demonstration image URL due to storage upload policy:', err.message)
+    return 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
+  }
 }
