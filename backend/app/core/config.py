@@ -1,10 +1,8 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     # Database connection string
-    # Default: local SQLite for zero-setup dev. Override with a Postgres/Supabase URL:
-    #   postgresql+asyncpg://user:password@localhost:5432/swachhlens
     database_url: str = "sqlite+aiosqlite:///./swachhlens.db"
 
     # Supabase storage (for uploaded waste photos)
@@ -15,16 +13,21 @@ class Settings(BaseSettings):
     # AI Vision API (Groq)
     groq_api_key: str = ""
 
-    # CORS - add your deployed frontend URLs here too
+    # CORS - allowed frontend origins
     allowed_origins: list[str] = [
-        "http://localhost:5173",  # citizen-app dev
-        "http://localhost:5174",  # admin-dashboard dev
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:3000",
+        "http://localhost:80",
+        "http://localhost",
+        "*",
     ]
 
     env: str = "development"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

@@ -179,5 +179,31 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
+## 🐳 DevOps & Container Deployment
+
+### 1. Multi-Container Orchestration (`docker-compose`)
+To spin up the entire production stack (FastAPI Backend, Citizen PWA, and Admin Control Room) with single command:
+```bash
+docker-compose up --build -d
+```
+- **Backend API**: `http://localhost:8000` (with automated `/health` checks)
+- **Citizen PWA Portal**: `http://localhost:5173` (served via production Nginx with SPA routing)
+- **Admin Control Room**: `http://localhost:5174` (served via production Nginx)
+
+### 2. Automated Testing Suite
+Run the backend test suite:
+```bash
+cd backend
+pytest
+```
+
+### 3. Continuous Integration & Continuous Deployment (CI/CD)
+The repository includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically:
+- Tests Python 3.11 backend endpoints, priority scoring, dispatch rules, and haversine calculations.
+- Builds and minifies the Citizen PWA with asset validation.
+- Builds and packages the Municipal Admin Dashboard.
+
+---
+
 ## 📜 License
 MIT License. Developed for the Swachh Bharat urban municipal innovation initiative.
