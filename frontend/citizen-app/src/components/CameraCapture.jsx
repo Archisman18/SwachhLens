@@ -83,6 +83,10 @@ export default function CameraCapture({ onCapture }) {
             type="button"
             className="btn btn-outline"
             style={{ marginTop: '16px', padding: '10px 24px', fontSize: '0.75rem' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              fileInputRef.current?.click()
+            }}
           >
             Select Image
           </button>

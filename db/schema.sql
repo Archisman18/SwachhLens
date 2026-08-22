@@ -1,8 +1,16 @@
 -- SwachhLens DB schema (Postgres + PostGIS, e.g. Supabase)
--- Run this against a fresh database/project.
+-- Run this against your Supabase project SQL Editor.
 
+-- Enable Extensions
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Drop existing tables/types if re-running (clean slate)
+DROP TABLE IF EXISTS complaints CASCADE;
+DROP TYPE IF EXISTS waste_type CASCADE;
+DROP TYPE IF EXISTS volume_bucket CASCADE;
+DROP TYPE IF EXISTS complaint_status CASCADE;
+DROP TYPE IF EXISTS urgency_level CASCADE;
 
 CREATE TYPE waste_type AS ENUM (
     'overflowing_bin', 'illegal_dump', 'plastic_waste', 'construction_debris',
@@ -32,6 +40,7 @@ CREATE TABLE complaints (
     assigned_team   TEXT,
     assigned_vehicle TEXT,
     duplicate_of    UUID REFERENCES complaints(id),
+    resolution_photo_url TEXT,
     reported_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

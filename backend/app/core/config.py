@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""
     supabase_storage_bucket: str = "waste-photos"
 
+    # AI Vision API (Groq)
+    groq_api_key: str = ""
+
     # CORS - add your deployed frontend URLs here too
     allowed_origins: list[str] = [
         "http://localhost:5173",  # citizen-app dev

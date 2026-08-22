@@ -124,17 +124,17 @@ export default function Layout() {
 
             <div className="footer-links-column">
               <h4>Classification</h4>
-              <a href="#categories">Plastic & Debris</a>
-              <a href="#categories">Overflowing Bins</a>
-              <a href="#categories">Hazardous & E-Waste</a>
-              <a href="#categories">Bio Degradable</a>
+              <Link to="/#categories">Plastic & Debris</Link>
+              <Link to="/#categories">Overflowing Bins</Link>
+              <Link to="/#categories">Hazardous & E-Waste</Link>
+              <Link to="/#categories">Bio Degradable</Link>
             </div>
 
             <div className="footer-links-column">
               <h4>Initiative</h4>
-              <a href="#mission">Clean Neighborhoods</a>
-              <a href="#mission">Municipal Integration</a>
-              <a href="#mission">Zero Dump Mission</a>
+              <Link to="/#about">Clean Neighborhoods</Link>
+              <Link to="/#how-it-works">Municipal Integration</Link>
+              <Link to="/report">Zero Dump Mission</Link>
             </div>
           </div>
         </div>

@@ -45,13 +45,19 @@ async def create_complaint(payload: ComplaintCreate, db: AsyncSession = Depends(
             image_response.raise_for_status()
             image_bytes = image_response.content
 
-        waste_type, confidence = await classifier.classify_waste(image_bytes)
+        waste_type, confidence = await classifier.classify_waste(image_bytes, payload.comment)
         volume_bucket = await volume_estimator.estimate_volume(image_bytes)
 
         complaint.waste_type = waste_type
         complaint.volume_bucket = volume_bucket
     except Exception as e:
-        print(f"AI pipeline failed for {payload.photo_url}: {e}")
+        # If image download fails or times out, still try Groq AI triage with comment
+        try:
+            waste_type, confidence = await classifier.classify_waste(b"", payload.comment)
+            complaint.waste_type = waste_type
+            complaint.volume_bucket = "medium"
+        except Exception:
+            print(f"AI pipeline failed for {payload.photo_url}: {e}")
 
     duplicate_id = await duplicate_detector.find_duplicate_candidate(
         db, payload.latitude, payload.longitude, complaint.waste_type

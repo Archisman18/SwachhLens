@@ -1,14 +1,14 @@
 """
 Duplicate detection.
 
-For PostgreSQL+PostGIS, uses spatial ST_DWithin queries.
-For SQLite (dev), falls back to Haversine distance calculation.
+For PostgreSQL+PostGIS, uses spatial queries.
+For SQLite (dev) and cross-platform compatibility, uses in-Python Haversine filtering.
 """
 
 import math
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import text, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.complaint import Complaint
@@ -32,39 +32,28 @@ async def find_duplicate_candidate(
 ) -> str | None:
     """
     Returns the id of a likely-duplicate existing complaint, or None.
-    Uses in-Python Haversine filtering (works on any DB backend).
+    Uses in-Python Haversine filtering (works cleanly on both SQLite and Postgres).
     """
     if waste_type is None:
         return None
 
-    query = text(
-        """
-        SELECT id FROM complaints
-        WHERE status != 'duplicate'
-          AND waste_type = :waste_type
-          AND reported_at > now() - make_interval(hours => :hours)
-          AND ST_DWithin(
-                location,
-                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-                :radius
-              )
-        ORDER BY reported_at DESC
-        LIMIT 1
-        """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=DUPLICATE_TIME_WINDOW_HOURS)
+
+    query = (
+        select(Complaint)
+        .where(
+            Complaint.status != "duplicate",
+            Complaint.waste_type == waste_type,
+            Complaint.reported_at > cutoff,
+        )
+        .order_by(Complaint.reported_at.desc())
     )
-    result = await db.execute(
-        query,
-        {
-            "waste_type": waste_type,
-            "hours": DUPLICATE_TIME_WINDOW_HOURS,
-            "lng": longitude,
-            "lat": latitude,
-            "radius": DUPLICATE_RADIUS_METERS,
-        },
-    )
-    row = result.first()
-    if row:
-        return str(row[0])
+
+    result = await db.execute(query)
+    for complaint in result.scalars():
+        dist = _haversine_meters(latitude, longitude, complaint.latitude, complaint.longitude)
+        if dist <= DUPLICATE_RADIUS_METERS:
+            return str(complaint.id)
 
     return None
 
